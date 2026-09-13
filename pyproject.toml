@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "logodds"
+version = "0.1.0"
+description = "Log-odds ratio with a Dirichlet prior (Monroe et al. 2008), using plain word-count dictionaries. No scikit-learn, no dependencies."
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [{name = "Julia Mendelsohn", email = "juliame@umd.edu"}]
+keywords = ["text analysis", "log-odds", "keyness", "corpus comparison", "fightin words"]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/juliamendelsohn/logodds"
+
+[tool.setuptools.packages.find]
+where = ["src"]
