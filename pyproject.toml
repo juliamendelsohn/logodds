@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "logodds"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Log-odds ratio with a Dirichlet prior (Monroe et al. 2008), using plain word-count dictionaries. No scikit-learn, no dependencies."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -28,6 +28,9 @@ Issues = "https://github.com/juliamendelsohn/logodds/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.dynamic]
+version = {attr = "logodds.__version__"}
 
 [tool.pytest.ini_options]
 addopts = "--doctest-modules"
