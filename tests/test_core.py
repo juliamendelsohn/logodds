@@ -1,4 +1,4 @@
-"""Tests for the logodds package. Run with: python -m pytest tests/ -q"""
+"""Tests for the logodds package. Run with: python -m pytest -q"""
 
 import math
 
@@ -6,39 +6,10 @@ import pytest
 
 from logodds import compute_log_odds, log_odds_details, top_words
 
-
-# ---------------------------------------------------------------------------
-# Reference implementation: the INST425 Homework 1 function, unchanged.
-# The package must reproduce it exactly when prior_counts=None and alpha=0.5.
-# ---------------------------------------------------------------------------
-def hw1_calculate_log_odds(count_dict1, count_dict2):
-    N1 = sum(count_dict1.values())
-    N2 = sum(count_dict2.values())
-    vocab = set(count_dict1) | set(count_dict2)
-    V = len(vocab)
-    alpha = 0.5
-    scores = {}
-    for w in vocab:
-        y1 = count_dict1.get(w, 0)
-        y2 = count_dict2.get(w, 0)
-        term1 = math.log((y1 + alpha) / (N1 + alpha * V - y1 - alpha))
-        term2 = math.log((y2 + alpha) / (N2 + alpha * V - y2 - alpha))
-        delta = term1 - term2
-        var = 1 / (y1 + alpha) + 1 / (y2 + alpha)
-        scores[w] = delta / math.sqrt(var)
-    return scores
-
-
 CORPUS_1 = {"the": 500, "cat": 40, "dog": 6, "purr": 9, "quantum": 1, "and": 300}
 CORPUS_2 = {"the": 520, "cat": 5, "dog": 44, "bark": 11, "and": 290, "leash": 7}
-
-
-def test_matches_homework_1_function_exactly():
-    expected = hw1_calculate_log_odds(CORPUS_1, CORPUS_2)
-    actual = compute_log_odds(CORPUS_1, CORPUS_2, alpha=0.5)
-    assert set(expected) == set(actual)
-    for w in expected:
-        assert actual[w] == pytest.approx(expected[w], rel=1e-12)
+BACKGROUND = {"the": 100000, "and": 80000, "cat": 50, "dog": 50, "purr": 5,
+              "bark": 5, "leash": 5, "quantum": 5}
 
 
 def test_direction_of_scores():
@@ -81,25 +52,21 @@ def test_larger_alpha_shrinks_rare_words_more():
     assert rare_shrink < marker_shrink
 
 
-def test_informative_prior_runs_and_changes_ranking():
-    background = {"the": 100000, "and": 80000, "cat": 50, "dog": 50, "purr": 5,
-                  "bark": 5, "leash": 5, "quantum": 5}
+def test_informative_prior_shrinks_background_frequent_words():
     uninformative = compute_log_odds(CORPUS_1, CORPUS_2)
-    informative = compute_log_odds(CORPUS_1, CORPUS_2, prior_counts=background)
+    informative = compute_log_odds(CORPUS_1, CORPUS_2, prior_counts=BACKGROUND)
     assert set(uninformative) == set(informative)
     # Function words are common in the background, so their prior is huge and
     # their scores are pulled hard toward zero.
     assert abs(informative["the"]) < abs(uninformative["the"])
 
 
-def test_prior_strength_rescales_prior():
-    background = {"the": 100000, "cat": 50, "dog": 50}
-    weak = log_odds_details(CORPUS_1, CORPUS_2, prior_counts=background,
-                            prior_strength=10)
-    strong = log_odds_details(CORPUS_1, CORPUS_2, prior_counts=background,
-                              prior_strength=100000)
-    assert strong["the"]["prior"] > weak["the"]["prior"]
-    assert abs(strong["the"]["z"]) < abs(weak["the"]["z"])
+def test_prior_is_background_count_plus_floor():
+    background = {"the": 1000, "cat": 20}
+    details = log_odds_details(CORPUS_1, CORPUS_2, prior_counts=background, alpha=0.01)
+    assert details["the"]["prior"] == pytest.approx(1000.01)
+    assert details["cat"]["prior"] == pytest.approx(20.01)
+    assert details["quantum"]["prior"] == pytest.approx(0.01)
 
 
 def test_prior_floor_prevents_zero_division():
@@ -153,8 +120,10 @@ def test_empty_vocabulary_returns_empty():
 
 # ---------------------------------------------------------------------------
 # Reference values produced by Jack Hessel's FightingWords implementation
-# (https://github.com/jmhessel/FightingWords), bayes_compare_language() with
-# prior=0.01 and an unfiltered CountVectorizer. This package must reproduce it.
+# (https://github.com/jmhessel/FightingWords). To regenerate, call
+# bayes_compare_language(l1, l2, prior=..., cv=...) on documents whose unigram
+# counts equal the dicts below, passing an unfiltered CountVectorizer
+# (token_pattern=r"(?u)\b\w+\b", so single-character words survive).
 # ---------------------------------------------------------------------------
 HESSEL_CORPUS_1 = {"a": 1, "and": 2, "at": 1, "cat": 5, "cats": 1, "dog": 1,
                    "door": 1, "ignores": 1, "mat": 1, "me": 1, "meow": 1,
@@ -196,4 +165,25 @@ def test_matches_hessel_fightingwords():
     actual = compute_log_odds(HESSEL_CORPUS_1, HESSEL_CORPUS_2, alpha=0.01)
     assert set(actual) == set(HESSEL_Z)
     for w, expected in HESSEL_Z.items():
+        assert actual[w] == pytest.approx(expected, abs=1e-12)
+
+
+# Same reference implementation, informative prior: the prior vector passed to
+# bayes_compare_language is BACKGROUND[w] + 0.01 for each word in CORPUS_1/2.
+HESSEL_INFORMATIVE_Z = {
+    "and": 0.08664163039181341,
+    "bark": -2.2693449734045288,
+    "cat": 2.8790441554595216,
+    "dog": -3.0686372149306269,
+    "leash": -1.6437451631429068,
+    "purr": 1.9757749829094806,
+    "quantum": 0.3010232453335830,
+    "the": -0.0418221428687848,
+}
+
+
+def test_matches_hessel_fightingwords_informative_prior():
+    actual = compute_log_odds(CORPUS_1, CORPUS_2, prior_counts=BACKGROUND, alpha=0.01)
+    assert set(actual) == set(HESSEL_INFORMATIVE_Z)
+    for w, expected in HESSEL_INFORMATIVE_Z.items():
         assert actual[w] == pytest.approx(expected, abs=1e-12)

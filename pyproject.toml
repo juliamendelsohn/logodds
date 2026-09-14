@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,14 +7,28 @@ name = "logodds"
 version = "0.1.0"
 description = "Log-odds ratio with a Dirichlet prior (Monroe et al. 2008), using plain word-count dictionaries. No scikit-learn, no dependencies."
 readme = "README.md"
-requires-python = ">=3.8"
-license = {text = "MIT"}
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{name = "Julia Mendelsohn", email = "juliame@umd.edu"}]
 keywords = ["text analysis", "log-odds", "keyness", "corpus comparison", "fightin words"]
 dependencies = []
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Text Processing :: Linguistic",
+]
 
 [project.urls]
 Homepage = "https://github.com/juliamendelsohn/logodds"
+Repository = "https://github.com/juliamendelsohn/logodds"
+Issues = "https://github.com/juliamendelsohn/logodds/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "--doctest-modules"
+testpaths = ["tests", "src"]

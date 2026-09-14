@@ -1,24 +1,16 @@
 # logodds
 
 Log-odds ratio with a Dirichlet prior, for finding the words that distinguish
-two corpora.
+two corpora. Implementation of Monroe et al.'s "Fightin' Words" method, adapted from Jack Hessel's Python implementation.
 
 This is a dependency-free implementation that works on **plain Python
 dictionaries** mapping words to counts. It does not use scikit-learn, and there
 are no vectorizers or arrays anywhere in the interface.
 
-It extends a compact version written by Julia Mendelsohn for INST425 (AI for
-Text Analysis) at the University of Maryland, adding support for the
-informative prior.
-
-Output is verified against [Jack Hessel's FightingWords](https://github.com/jmhessel/FightingWords),
-the reference implementation of this method; the test suite checks the z-scores
-match exactly.
-
 ## Install
 
 ```bash
-pip install git+https://github.com/juliamendelsohn/logodds.git
+pip install logodds
 ```
 
 ## Usage
@@ -47,15 +39,21 @@ Pass counts from a larger background corpus:
 scores = compute_log_odds(corpus1, corpus2, prior_counts=background)
 ```
 
+Each word's prior is its background count plus `alpha`, so α₀ is simply the sum
+of those priors. Words that are common in the background get a large prior and
+are shrunk hard toward zero.
+
 Optional arguments:
 
 | Argument | Default | |
 | --- | --- | --- |
 | `prior_counts` | `None` | Background corpus counts. Switches on the informative prior. |
 | `alpha` | `0.01` | Without `prior_counts`, the pseudo-count added to every word. With it, a floor so no word gets a zero prior. |
-| `prior_strength` | `None` | Total prior mass (α₀) to spread over the vocabulary, proportional to the background counts. `None` uses the raw counts. |
 | `min_count` | `0` | Drop words whose combined count is below this. |
 | `vocabulary` | `None` | Restrict to a given word list. |
+
+Corpus sizes are measured over the retained vocabulary, so filtering with
+`min_count` or `vocabulary` renormalizes the frequencies.
 
 ### Intermediate values
 
@@ -86,7 +84,7 @@ z = δ^w / sqrt(σ²(δ^w))
 
 ```bash
 pip install -e . pytest
-python -m pytest tests/ -q
+python -m pytest -q
 ```
 
 ## License
